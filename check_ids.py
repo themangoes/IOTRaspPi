@@ -34,7 +34,21 @@ def check_type(id):
             return student_type
             
     return invalid_type
-        
+
+
+def get_name(id, type):
+    init()
+    if type == teacher_type:
+        for row in teacher_database:
+            if (row['id'] == id):
+                return row['name']
+    elif type == student_type:
+        for row in student_database:
+            if (row['id'] == id):
+                return row['name']
+    
+    return "NF"
+            
     
     
     
