@@ -1,6 +1,7 @@
 import lcd_display as lcd
 import rfid_scanner as rfid
 import check_ids
+from buzzersounds import *
 import time
 
 default_lcd_message = "Waiting for a\nclass to start.."
@@ -16,6 +17,7 @@ def main():
             type = check_ids.check_type(id)
             if type == check_ids.teacher_type and id == curr_class_faculty_id:
                 end_class()
+                #exit()
             elif type == check_ids.teacher_type:
                 lcd.display_message("Please wait for\nclass to end.")
                 time.sleep(5)
@@ -48,7 +50,6 @@ def start_class(id, name):
     global class_in_progress
     global curr_class_faculty_id
     global curr_lcd_message
-
         
     class_in_progress = True
     curr_class_faculty_id = id
@@ -58,6 +59,7 @@ def start_class(id, name):
                  )
     curr_lcd_message = "Faculty: " + name + "\nStartTime: " + start_time
     lcd.display_message(curr_lcd_message)
+    start_class_sound()
     time.sleep(5)
 
         
@@ -75,3 +77,4 @@ def add_student_attendance(id, name):
     
 init()
 main()
+GPIO.cleanup()

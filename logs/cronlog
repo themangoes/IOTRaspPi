@@ -1,0 +1,4 @@
+AUTH ERROR!!
+AUTH ERROR(status2reg & 0x08) != 0
+Error while reading!
+Error while reading!
