@@ -17,15 +17,17 @@ def main():
             type = check_ids.check_type(id)
             if type == check_ids.teacher_type and id == curr_class_faculty_id:
                 end_class()
-                #exit()
+                exit()
             elif type == check_ids.teacher_type:
                 lcd.display_message("Please wait for\nclass to end.")
+                please_wait_sound()
                 time.sleep(5)
             elif type == check_ids.student_type:
                 add_student_attendance(id, check_ids.get_name(id, type))
             else:
                 lcd.display_message("Invalid ID!")
-                time.sleep(5)
+                invalid_id_sound()
+                time.sleep(3)
                 
         elif not class_in_progress:
             lcd.display_message(default_lcd_message)
@@ -35,15 +37,16 @@ def main():
                 start_class(id, check_ids.get_name(id, type))
             elif type == check_ids.student_type:
                 lcd.display_message("Please wait for\nclass to start.")
+                please_wait_sound()
                 time.sleep(5)
             else:
                 lcd.display_message("Invalid ID!")
-                time.sleep(5)
+                invalid_id_sound()
+                time.sleep(3)
             
         
 def init():
     check_ids.init()
-    
     
     
 def start_class(id, name):
@@ -67,11 +70,13 @@ def end_class():
     global class_in_progress 
     lcd.display_message("Class ended.")
     class_in_progress = False
+    end_class_sound()
     time.sleep(2)
 
 
 def add_student_attendance(id, name):
     lcd.display_message(name + " is\nattending.")
+    student_attending_sound()
     time.sleep(2)
 
     
