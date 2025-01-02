@@ -16,10 +16,10 @@ buzz1 = GPIO.PWM(buzzer1_pinnum, myfreq)
 buzz2 = GPIO.PWM(buzzer2_pinnum, myfreq)
 
 
-
 def play_for_and_stop_for_with_freq(playtime, stoptime, freq):
 	buzz1.ChangeFrequency(freq)
 	buzz2.ChangeFrequency(freq)
+	
 	buzz1.start(50)
 	buzz2.start(50)
 	sleep(playtime)

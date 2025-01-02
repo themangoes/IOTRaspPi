@@ -5,21 +5,13 @@ reader = SimpleMFRC522()
 
 not_found = "NF"
 
+
 def scan_rfid_id():
     while True:
-        id, name = reader.read()
+        rfid, id = reader.read()
 
         if not id:
             return not_found
         else:
-            return str(id)
-        
-        
-def scan_rfid_name():
-    while True:
-        id, name = reader.read()
+            return id.strip()
 
-        if not name:
-            return not_found
-        else:
-            return name

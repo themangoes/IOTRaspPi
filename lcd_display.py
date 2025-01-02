@@ -18,7 +18,7 @@ lcd = lcd_library.Character_LCD_Mono(
 )
 
 def display_message(dmessage):
-    lcd.blink = True
+    lcd.blink = False
     lcd.message = "                \n                "
     lcd.message = dmessage
         
