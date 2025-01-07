@@ -1,6 +1,7 @@
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
+client = boto3.client('dynamodb')
 
 students_table = dynamodb.Table("students")
 teachers_table = dynamodb.Table("teachers")
@@ -33,43 +34,56 @@ def get_student_attribute(id, attribute):
 
 
 def put_attendance(
-				student_class_number, 
+				student_id,
+				student_class_number,  
+				teacher_id,
 				teacher_class_number, 
-				teacher_id, 
-				student_id, 
 				attending_time, 
 				class_start_time, 
 				date
 				):
 	attendance_table.put_item(
 						Item = {
-								"student_class_number" : student_class_number,
-								"teacher_class_number" : teacher_class_number,
-								"teacher_id" : teacher_id,
 								"student_id" : student_id,
+								"student_class_number" : student_class_number,
+								"teacher_id" : teacher_id,	
+								"teacher_class_number" : teacher_class_number,
 								"attending_time" : attending_time,
 								"class_start_time" : class_start_time,
 								"date" : date,
 								}
 							)
-
-
-def get_new_class_number(teacher_id):
-	classes_held = teachers_table.get_item(Key = {"id" : teacher_id},
-											AttributesToGet = ["classes_held"]
-										)["Item"]["classes_held"]
-	return classes_held + 1
 	
 
 def get_id_type(id):
 	for student in student_ids:
-		#print("input= " + id + " | rowid= " + student["id"])
 		if student["id"] == id:
 			return student_type
 	
 	for teacher in teacher_ids:
-		#print("input= " + id + " | rowid= " + teacher["id"])
 		if teacher["id"] == id:
 			return teacher_type
 			
 	return invalid_type
+	
+	
+def increment_classes_attended_count(id, increment):
+	students_table.update_item(
+							Key = {"id" : id},
+							UpdateExpression = "SET classes_attended = classes_attended + :val",
+							ExpressionAttributeValues={
+									':val': increment,
+								}
+							)
+						
+						
+def increment_classes_held_count(id, increment):
+	teachers_table.update_item(
+							Key = {"id" : id},
+							UpdateExpression = "SET classes_held = classes_held + :val",
+							ExpressionAttributeValues={
+									':val': increment,
+								}
+							)
+						
+

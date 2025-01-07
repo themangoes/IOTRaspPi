@@ -7,9 +7,8 @@ not_found = "NF"
 
 
 def scan_rfid_id():
-    while True:
-        rfid, id = reader.read()
-
+        rfid, id = reader.read_no_block()
+        
         if not id:
             return not_found
         else:
