@@ -5,7 +5,7 @@ client = boto3.client('dynamodb')
 
 students_table = dynamodb.Table("students")
 teachers_table = dynamodb.Table("teachers")
-attendance_table = dynamodb.Table("attendance")
+classes_table = dynamodb.Table("classes")
 
 student_ids = students_table.scan(AttributesToGet = ["id"])["Items"]
 teacher_ids = teachers_table.scan(AttributesToGet = ["id"])["Items"]
@@ -33,24 +33,22 @@ def get_student_attribute(id, attribute):
 		return "NF"
 
 
-def put_attendance(
-				student_id,
-				student_class_number,  
+def put_attendance( 
 				teacher_id,
 				teacher_class_number, 
-				attending_time, 
 				class_start_time, 
-				date
+				class_end_time,
+				date,
+				attending_students_set
 				):
-	attendance_table.put_item(
+	classes_table.put_item(
 						Item = {
-								"student_id" : student_id,
-								"student_class_number" : student_class_number,
 								"teacher_id" : teacher_id,	
-								"teacher_class_number" : teacher_class_number,
-								"attending_time" : attending_time,
+								"class_number" : teacher_class_number,
 								"class_start_time" : class_start_time,
+								"class_end_time" : class_end_time,
 								"date" : date,
+								"attending_students" : attending_students_set
 								}
 							)
 	

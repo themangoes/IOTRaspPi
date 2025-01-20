@@ -9,10 +9,12 @@ default_lcd_message = "Waiting for a\nclass to start.."
 curr_lcd_message = ""
 class_in_progress = False
 curr_class_faculty_id = 0
-curr_class_start_time = ""
+curr_class_start_time_epoch = 0
+curr_class_start_time_fstr = ""
 curr_class_number = -1
 end_class_scans = 1
 redisplay = True
+attending_students_set = {"None"};
 
 
 def main():
@@ -35,6 +37,7 @@ def main():
                 
             elif type == cloud.teacher_type:
                 lcd.display_message("Please wait for\nclass to end.")
+                redisplay = True
                 please_wait_sound()
                 time.sleep(5)
                 
@@ -62,6 +65,7 @@ def main():
                 
             elif type == cloud.student_type:
                 lcd.display_message("Please wait for\nclass to start.")
+                redisplay = True
                 please_wait_sound()
                 time.sleep(5)
                 
@@ -79,21 +83,30 @@ def start_class(id, name):
     global curr_class_faculty_id
     global curr_lcd_message
     global curr_class_number
-    global curr_class_start_time
+    global curr_class_start_time_epoch
+    global curr_class_start_time_fstr
     global redisplay
         
     class_in_progress = True
     curr_class_faculty_id = id
     curr_class_number = cloud.get_teacher_attribute(id, "classes_held") + 1
-    curr_class_start_time = time.time()
-    start_time = time.strftime(
+    curr_class_start_time_epoch = time.time()
+    curr_class_start_time_fstr = time.strftime(
                  "%H:%M",
                  time.localtime()
                  )
-    curr_lcd_message = "Faculty: " + name + "\nStartTime: " + start_time
+    curr_lcd_message = "Faculty: " + name + "\nStartTime: " + curr_class_start_time_fstr
     lcd.display_message(curr_lcd_message)
     start_class_sound()
     redisplay = True
+    cloud.put_attendance(
+                        curr_class_faculty_id,
+                        curr_class_number, 
+                        curr_class_start_time_fstr,
+                        "class in progress",
+                        get_date_now(),
+                        attending_students_set
+                        )
     time.sleep(5)
 
         
@@ -101,6 +114,7 @@ def end_class():
     global class_in_progress 
     global end_class_scans
     global redisplay
+    global attending_students_set
     
     if end_class_scans < 2:
         lcd.display_message("Scan again\nto end class.")
@@ -109,8 +123,18 @@ def end_class():
         time.sleep(1)
     else:
         lcd.display_message("Class ended.")
+        cloud.put_attendance(
+                        curr_class_faculty_id,
+                        curr_class_number, 
+                        curr_class_start_time_fstr,
+                        get_time_now(),
+                        get_date_now(),
+                        attending_students_set
+                        )
         end_class_scans = 1
         class_in_progress = False
+        attending_students_set.clear()
+        attending_students_set.add("None")
         cloud.increment_classes_held_count(curr_class_faculty_id, 1)
         end_class_sound()
         time.sleep(2)
@@ -120,25 +144,23 @@ def end_class():
 
 def add_student_attendance(id, name):
     global redisplay
-    lcd.display_message(name + " is\nattending.")
-    attending_time = time.strftime(
-                        "%H:%M",
-                        time.localtime()
-                        )
-    datenow = time.strftime(
-                        "%D",
-                        time.localtime()
-                        )
-    student_attending_class_number = cloud.get_student_attribute(id, "classes_attended") + 1
+    global attending_students_set
     
+    if id in attending_students_set:
+        return;
+    
+    lcd.display_message(name + " is\nattending.")
+    student_attending_class_number = cloud.get_student_attribute(id, "classes_attended") + 1
+    if "None" in attending_students_set:
+        attending_students_set.remove("None")
+    attending_students_set.add(id)
     cloud.put_attendance(
-                        id,
-                        student_attending_class_number, 
                         curr_class_faculty_id,
                         curr_class_number, 
-                        attending_time,
-                        curr_class_start_time,
-                        datenow
+                        curr_class_start_time_fstr,
+                        "class in progress",
+                        get_date_now(),
+                        attending_students_set
                         )
     cloud.increment_classes_attended_count(id, 1)
     student_attending_sound()
@@ -151,10 +173,25 @@ def is_class_time_up():
         return False
         
     time_now = time.time()
-    timediff = time_now - curr_class_start_time
+    timediff = time_now - curr_class_start_time_epoch
     if timediff >= 3600:
         return True
-    
+
+
+def get_date_now():
+    datenow = time.strftime(
+                        "%d/%m/%y",
+                        time.localtime()
+                        )
+    return datenow
+
+
+def get_time_now():
+    timenow = time.strftime(
+                        "%H:%M",
+                        time.localtime()
+                        )
+    return timenow
         
 main()
 GPIO.cleanup()
