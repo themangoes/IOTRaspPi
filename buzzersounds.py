@@ -70,3 +70,10 @@ def please_wait_sound():
 #invalid_id_sound()
 #please_wait_sound()
 #----------------------------------------------------------------
+
+if __name__ == '__main__':
+	#start_class_sound()
+	#end_class_sound()
+	#student_attending_sound()
+	invalid_id_sound()
+	#please_wait_sound()

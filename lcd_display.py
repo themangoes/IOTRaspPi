@@ -21,4 +21,8 @@ def display_message(dmessage):
     lcd.blink = False
     lcd.message = "                \n                "
     lcd.message = dmessage
+    
+
+if __name__ == '__main__':
+    display_message("testing")
         
