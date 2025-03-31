@@ -1,8 +1,9 @@
 import time
-import lcd_display as lcd
-import mongo_cloudconnect as cloud
-from utils import *
-from buzzersounds import *
+# import ..IOTRaspPi.utils.lcd_display as lcd
+from cloud import mongo_cloudconnect as cloud
+from utils import lcd_display as lcd
+from utils import utils
+from utils import buzzersounds as sounds
 
 
 class_time_limit = 3600
@@ -11,7 +12,7 @@ cancel_class_time_limit = 1
 
 class Current_Class:
 	class_sl_num = cloud.new_class_sl_num()
-	status = NOTSTARTED
+	status = utils.NOTSTARTED
 	faculty_id = 0
 	start_time_epoch = 0
 	start_time_fstr = ""
@@ -22,13 +23,13 @@ class Current_Class:
 	
 	
 	def start(self, id):
-		self.status = INPROGRESS
+		self.status = utils.INPROGRESS
 		self.faculty_id = id
 		name = cloud.get_person_name(id)
 		self.class_number = cloud.get_teacher_attribute(id, "classes_held") + 1
 		self.start_time_epoch = time.time()
-		self.start_time_fstr = get_time_now()
-		self.start_date = get_date_now()
+		self.start_time_fstr = utils.get_time_now()
+		self.start_date = utils.get_date_now()
 		cloud.put_attendance(
 							self.class_sl_num,
 							self.faculty_id,
@@ -40,7 +41,7 @@ class Current_Class:
 							self.status
 							)
 		lcd.display_message("Faculty: " + name + "\nStartTime: " + self.start_time_fstr)
-		start_class_sound()
+		sounds.start_class_sound()
 		print("Class SL Num = ",self.class_sl_num)
 		time.sleep(3)
 		return ("Faculty: " + name + "\nStartTime: " + self.start_time_fstr)
@@ -67,7 +68,7 @@ class Current_Class:
 							self.status
 							)
 		lcd.display_message(name[:10] + "..." + " is\nattending.")
-		student_attending_sound()
+		sounds.student_attending_sound()
 		time.sleep(2)
 		return (name[:10] + "..." + " is\nattending.")
 		
@@ -80,16 +81,16 @@ class Current_Class:
 		if self.end_class_scans < 1:
 			lcd.display_message("Scan again\nto end class.")
 			self.end_class_scans += 1
-			please_wait_sound()
+			sounds.please_wait_sound()
 			time.sleep(1)
 		else:
-			self.status = ENDED
+			self.status = utils.ENDED
 			cloud.put_attendance(
 							self.class_sl_num,
 							self.faculty_id,
 							self.class_number, 
 							self.start_time_fstr,
-							get_time_now(),
+							utils.get_time_now(),
 							self.start_date,
 							list(self.attending_students_set),
 							self.status
@@ -101,7 +102,7 @@ class Current_Class:
 			cloud.increment_classes_held_count(self.faculty_id, 1)
 			for id in self.attending_students_set:
 				cloud.increment_classes_attended_count(id, self.faculty_id, 1)
-			end_class_sound()
+			sounds.end_class_sound()
 			time.sleep(2)
 			
 		
@@ -109,21 +110,21 @@ class Current_Class:
 		if self.end_class_scans < 1:
 			lcd.display_message("Scan again to\ncancel class.")
 			self.end_class_scans += 1
-			please_wait_sound()
+			sounds.please_wait_sound()
 			time.sleep(1)
 		else:
-			self.status = CANCELLED
+			self.status = utils.CANCELLED
 			cloud.delete_class(self.class_sl_num)
 			lcd.display_message("Class cancelled.")
 			self.end_class_scans = 0
 			self.attending_students_set.clear()
 			self.attending_students_set.add("None")
-			end_class_sound()
+			sounds.end_class_sound()
 			time.sleep(3)
 			
 		
 	def is_time_up(self):
-		if self.status is NOTSTARTED:
+		if self.status is utils.NOTSTARTED:
 			return False
         
 		timediff = self.get_time_diff()

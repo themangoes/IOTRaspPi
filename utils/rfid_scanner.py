@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
-from lcd_display import display_message
+from .lcd_display import display_message
 from time import sleep
 
 reader = SimpleMFRC522()

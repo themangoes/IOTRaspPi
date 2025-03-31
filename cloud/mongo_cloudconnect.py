@@ -2,7 +2,7 @@ import pymongo
 import os
 from dotenv import load_dotenv
 from enum import Enum
-from utils import *
+from utils import utils
 
 load_dotenv()
 
@@ -15,12 +15,24 @@ classes = attendance_db.Classes
 
 people = client.People.PeopleTypes
 
-
+#---------------------------------------GENERAL FUNCTIONS-----------------------------------#
 def get_person_name(id):
 	person = people.find_one({"_id" : id})
 	return person["name"]
+	
 
+def get_id_type(id):
+	record = people.find_one({"_id" : id})
+	
+	if not record:
+		return "Invalid"
+	else:
+		return record["type"]
+#---------------------------------------LIBRARY FUNCTIONS-----------------------------------#
 
+#---------------------------------------SHOP FUNCTIONS-----------------------------------#	
+		
+#-------------------------------CLASS ATTENDANCE FUNCTIONS-----------------------------------------#
 def new_class_sl_num():
 	sl_num_record = classes.find_one({"_id":0})
 	new_sl_num = sl_num_record["prev_class_sl_num"] + 1
@@ -68,15 +80,6 @@ def delete_class(sl_num):
 	return classes.delete_one({"_id" : sl_num})
 	
 
-def get_id_type(id):
-	record = people.find_one({"_id" : id})
-	
-	if not record:
-		return "Invalid"
-	else:
-		return record["type"]
-	
-	
 def increment_classes_attended_count(student_id, teacher_id, increment):
 	students.update_one(
 							{"_id" : student_id},
@@ -90,9 +93,5 @@ def increment_classes_held_count(id, increment):
 							{'$inc': {'classes_held': increment}}
 						)
 						
-
-if __name__ == '__main__':
-	print("Starting Process...")
-	students.update_one({"_id" : "IS003"},
-						{'$inc' : {'classes_attended.PROF001' : 1 }})
-	print("Process Ended.")
+	
+	

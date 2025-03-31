@@ -3,7 +3,7 @@ import time
 
 CLASS = "class"
 LIBRARY = "library"
-CANTEEN = "canteen"
+SHOP = "shop"
 
 STUDENT = "student"
 TEACHER = "teacher"
