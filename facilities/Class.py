@@ -1,5 +1,4 @@
 import time
-# import ..IOTRaspPi.utils.lcd_display as lcd
 from cloud import mongo_cloudconnect as cloud
 from utils import lcd_display as lcd
 from utils import utils

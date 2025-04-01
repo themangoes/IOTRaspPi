@@ -1,6 +1,6 @@
 .venv
 .env
-__pycache__
-*.sh
-logs
+__pycache__/
+launcher.sh
+logs/
 .git

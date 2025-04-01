@@ -27,8 +27,28 @@ def play_for_and_stop_for_with_freq(playtime, stoptime, freq):
 	buzz1.stop()
 	buzz2.stop()
 	sleep(stoptime)
+	
+
+#-----------------------------------------GENERAL SOUNDS------------------------------------#
+	
+def invalid_id_sound():
+	play_for_and_stop_for_with_freq(0.1, 0.05, myfreq)
+	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
+	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
+	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
+	play_for_and_stop_for_with_freq(0.2, 0, myfreq)
+	
+
+def please_wait_sound():
+	play_for_and_stop_for_with_freq(0.4, 0, myfreq)
+
+#-----------------------------------------LIBRARY SOUNDS------------------------------------#
 
 
+#-----------------------------------------SHOP SOUNDS------------------------------------#
+
+
+#-----------------------------------------CLASS SOUNDS------------------------------------#
 def start_class_sound():
 	play_for_and_stop_for_with_freq(0.1, 0.05, myfreq)
 	play_for_and_stop_for_with_freq(0.1, 0.1, myfreq)
@@ -46,18 +66,6 @@ def end_class_sound():
 def student_attending_sound():
 	play_for_and_stop_for_with_freq(0.1, 0.05, myfreq)
 	play_for_and_stop_for_with_freq(0.1, 0, myfreq)
-	
-	
-def invalid_id_sound():
-	play_for_and_stop_for_with_freq(0.1, 0.05, myfreq)
-	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
-	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
-	play_for_and_stop_for_with_freq(0.05, 0.05, myfreq)
-	play_for_and_stop_for_with_freq(0.2, 0, myfreq)
-	
-
-def please_wait_sound():
-	play_for_and_stop_for_with_freq(0.4, 0, myfreq)
 	
 	
 

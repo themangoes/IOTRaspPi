@@ -5,6 +5,7 @@ import time
 from datetime import date
 from utils.utils import *
 import facilities.Class as Class
+import facilities.Class as Library
 import cloud.mongo_cloudconnect as cloud
 
 
@@ -23,6 +24,9 @@ def main():
     global mode
     
     while True:
+        
+#--------------------------------CLASS MODE----------------------------------------#        
+        
         if mode == CLASS:
             
             if not curr_class or curr_class.status == ENDED or curr_class.status == CANCELLED:
@@ -93,20 +97,99 @@ def main():
                     invalid_id_sound()
                     redisplay = True
                     time.sleep(1)
+                    
             
+#--------------------------------LIBRARY MODE----------------------------------------#
             
-        """elif mode == LIBRARY:
+        elif mode == LIBRARY:
             if not library:
                 library = Library.Library()
                 
             if not library.is_open:
                 if redisplay:
-                    curr_lcd_message = "Library is closed"
-        
+                    curr_lcd_message = "Library is\nclosed."
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = False
+                
+                id = rfid.scan_rfid_id()
+                type = cloud.get_id_type(id)
+                
+                if type == LIBRARIAN:
+                    library.open()
+                    curr_lcd_message = "Library is open,\nWelcome!"
+                    
+                elif id == rfid.not_found:
+                    pass
+                    
+                elif type in PEOPLETYPES:
+                    lcd.display_message = "Please wait for\nLibrary to open."
+                    redisplay = True
+                    please_wait_sound()
+                    time.sleep(3)
+                
+                else:
+                    print("Invalid ID!")
+                    invalid_id_sound()
+                    redisplay = True
+                    time.sleep(1)
+                
+                
+            elif library.is_open:
+                 if redisplay:
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = False
+                
+                id = rfid.scan_rfid_id()
+                type = cloud.get_id_type(id)
+                
+                if type == LIBRARIAN:
+                    library.close()
+                    redisplay=True
+                
+                elif type in PEOPLETYPES and library.status == NONE:
+                    library.open_escrow("borrow")
+                    
+                elif type in PEOPLETYPES and library.status == BORROWING:
+                    if not library.curr_borrower_id == id:
+                        lcd.display_message("Please wait for\nprev user to end")
+                        please_wait_sound()
+                        redisplay = True
+                        time.sleep(2)
+                    library.close_escrow()
+                    library.borrow_escrow()
+                    
+                elif type in PEOPLETYPES and library.status == RETURNING:
+                    library.close_escrow()
+                    library.return_escrow()
+                
+                elif type == BOOK:
+                    if library.status == BORROWING or library.status == RETURNING:
+                        library.add_to_escrow(id)
+                    elif cloud.is_borrowed(id):
+                        library.set_to_returning()
+                        library.open_escrow("return")
+                        library.add_to_escrow(id)
+                    else:
+                        lcd.display_message("Scan your card\nfirst.")
+                        redisplay = True
+                        invalid_id_sound()
+                        time.sleep(2)
+                    
+                elif id == rfid.not_found:
+                    pass
+                
+                else:
+                    print("Invalid ID!")
+                    invalid_id_sound()
+                    redisplay = True
+                    time.sleep(1)
+                    
+                    
+#--------------------------------SHOP MODE----------------------------------------#        
         
         elif mode == SHOP:
             print("do shop stuff")
-            # to do shop stuff"""
+            # to do shop stuff
             
 
         
