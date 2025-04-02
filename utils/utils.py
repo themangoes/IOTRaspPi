@@ -1,6 +1,8 @@
 import time
 
 
+NOTAPPLICABLE = "N/A"
+
 CLASS = "class"
 LIBRARY = "library"
 SHOP = "shop"
@@ -20,6 +22,14 @@ INPROGRESS = "In Progress"
 ENDED = "Ended"
 CANCELLED = "Cancelled"
 CLASSSTATUS = [NOTSTARTED, INPROGRESS, ENDED, CANCELLED]
+
+AVAILABLE = "available"
+BORROWED = "borrowed"
+RETURNED = "returned"
+
+BORROWING = "borrowing"
+RETURNING = "returning"
+NONE = "none"
 
 
 def get_date_now():

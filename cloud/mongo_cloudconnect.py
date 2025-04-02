@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from enum import Enum
 from utils import utils
+import time
 
 load_dotenv()
 
@@ -13,6 +14,14 @@ students = attendance_db.Students
 teachers = attendance_db.Teachers
 classes = attendance_db.Classes
 
+library_db = client.Library
+books = library_db.Books
+borrow_history = library_db.Borrow_History
+
+shop_db = client.Shop
+items = shop_db.Items
+transactions = shop_db.Transaction_History
+
 people = client.People.PeopleTypes
 
 #---------------------------------------GENERAL FUNCTIONS-----------------------------------#
@@ -22,13 +31,170 @@ def get_person_name(id):
 	
 
 def get_id_type(id):
+	
 	record = people.find_one({"_id" : id})
 	
 	if not record:
-		return "Invalid"
+		record = books.find_one({"_id" : id})
+		if not record:
+			record = items.find_one({"_id" : id})
+			if not record:
+				return "Invalid"
+			else:
+				return utils.ITEM
+		else:
+			return utils.BOOK
 	else:
 		return record["type"]
+		
+		
+def process_transaction(id, fee, type):
+	person_record = people.find_one({"_id" : id})
+	pre_balance = person_record["balance"]
+	post_balance = pre_balance - fee
+	if post_balance < 0:
+		return False
+	else:
+		people.update_one({"_id":id}, {"$set" : {"balance" : post_balance}})
+		return True
+	
+	
 #---------------------------------------LIBRARY FUNCTIONS-----------------------------------#
+
+def new_borrow_sl_num():
+	sl_num_record = borrow_history.find_one({"_id":0})
+	new_sl_num = sl_num_record["prev_borrow_sl_num"] + 1
+	borrow_history.update_one({"_id":0}, {'$inc': {'prev_borrow_sl_num': 1}})
+	return new_sl_num
+	
+	
+def get_book_attribute(id, attribute):
+	book_record = books.find_one({"_id":id})
+	return book_record[attribute]
+
+
+def is_borrowed(id):
+	book_record = books.find_one({"_id":id})
+	if book_record["status"] == utils.AVAILABLE:
+		return False
+	else:
+		return True
+
+
+def borrow_books(borrower_id, escrow, borrow_date, return_due_date, due_date_epoch):
+	status = utils.BORROWED
+	returned_date = utils.NOTAPPLICABLE
+	late_fee_payed = 0
+	for book_id in escrow:
+		sl_num = new_borrow_sl_num()
+		title = get_book_attribute(book_id, "title")
+		set_book_data(
+						book_id, 
+						borrower_id, 
+						borrow_date, 
+						returned_date,
+						return_due_date, 
+						due_date_epoch, 
+						status, 
+						sl_num
+					)
+					
+		borrower_name = get_person_name(borrower_id)
+		add_to_borrow_history(
+								sl_num,
+								book_id,
+								title,
+								borrower_id,
+								borrower_name,
+								borrow_date,
+								returned_date,
+								return_due_date,
+								due_date_epoch,
+								status,
+								late_fee_payed
+							)
+							
+	
+def set_book_data(book_id, borrower_id, borrow_date, returned_date, return_due_date, due_date_epoch, status, sl_num):	
+	books.update_one(
+						{"_id":book_id}, {'$set' : {
+						"_id":book_id,
+						"status" : status,
+						"borrower_id" : borrower_id,
+						"borrowed_date" : borrow_date,
+						"returned_date" : returned_date,
+						"due_date" : return_due_date,
+						"due_epoch_time" : due_date_epoch,
+						"borrow_sl_num" : sl_num
+						}}, upsert=True
+					)
+	
+	
+def return_books(borrower_id, escrow):
+	return_date = utils.get_date_now()
+	status = utils.RETURNED
+	return_error_books = set()
+
+	for book_id in escrow:
+		sl_num = get_book_attribute(book_id, "borrow_sl_num")
+		due_date_epoch = get_book_attribute(book_id, "due_epoch_time")
+		late_fee = ((time.time() - due_date_epoch) // 86400) + 1
+		transact = True
+		if late_fee > 0:
+			transact = process_transaction(borrower_id, late_fee, "loss")
+		else:
+			late_fee = 0
+		
+		if transact:
+			borrow_history.update_one(
+										{"_id":sl_num}, {"$set": {
+										"returned_date":return_date,
+										"status":status,
+										"late_fee_payed" : late_fee
+										}}
+									)
+			set_book_data(
+							book_id,
+							utils.NOTAPPLICABLE,
+							utils.NOTAPPLICABLE,
+							utils.NOTAPPLICABLE,
+							utils.NOTAPPLICABLE,
+							0,
+							utils.AVAILABLE,
+							0
+						)
+		else:
+			return_error_books.add(book_id)
+			
+	return return_error_books
+	
+	
+def add_to_borrow_history(sl_num, book_id, title, borrower_id, borrower_name, borrow_date, returned_date, return_due_date, due_date_epoch, status, late_fee_payed):
+	borrow_history.update_one(
+								{"_id":sl_num}, {"$set": {
+								"sl_num":sl_num,
+								"book_id":book_id,
+								"title":title,
+								"borrower_id":borrower_id,
+								"borrower_name":borrower_name,
+								"borrow_date":borrow_date,
+								"returned_date":returned_date,
+								"return_due_date":return_due_date,
+								"due_date_epoch":due_date_epoch,
+								"status":status,
+								"late_fee_payed":late_fee_payed
+								}}, upsert=True
+							)
+	
+	
+def get_late_fee(book_id):
+	due_date_epoch = get_book_attribute(book_id, "due_epoch_time")
+	late_fee = ((time.time() - due_date_epoch) // 86400) + 1
+	if late_fee > 0:
+		return late_fee
+	else:
+		return 0
+
 
 #---------------------------------------SHOP FUNCTIONS-----------------------------------#	
 		

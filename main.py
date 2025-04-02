@@ -5,13 +5,13 @@ import time
 from datetime import date
 from utils.utils import *
 import facilities.Class as Class
-import facilities.Class as Library
+import facilities.Library as Library
 import cloud.mongo_cloudconnect as cloud
 
 
 curr_lcd_message = ""
 redisplay = True
-mode = CLASS
+mode = LIBRARY
 curr_class = None
 library = None
 
@@ -19,6 +19,7 @@ library = None
 def main():
     global redisplay
     global curr_class
+    global library
     global default_lcd_message
     global curr_lcd_message
     global mode
@@ -96,13 +97,13 @@ def main():
                     lcd.display_message("Invalid ID!")
                     invalid_id_sound()
                     redisplay = True
-                    time.sleep(1)
+                    time.sleep(2)
                     
             
 #--------------------------------LIBRARY MODE----------------------------------------#
             
         elif mode == LIBRARY:
-            if not library:
+            if not library or library.make_new:
                 library = Library.Library()
                 
             if not library.is_open:
@@ -115,14 +116,21 @@ def main():
                 type = cloud.get_id_type(id)
                 
                 if type == LIBRARIAN:
+                    print("Librarian scanned!")
                     library.open()
+                    print(library.is_open)
                     curr_lcd_message = "Library is open,\nWelcome!"
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = True
+                    start_class_sound()
+                    time.sleep(5)
                     
                 elif id == rfid.not_found:
                     pass
                     
                 elif type in PEOPLETYPES:
-                    lcd.display_message = "Please wait for\nLibrary to open."
+                    curr_lcd_message = "Please wait for\nLibrary to open."
+                    lcd.display_message(curr_lcd_message)
                     redisplay = True
                     please_wait_sound()
                     time.sleep(3)
@@ -135,19 +143,31 @@ def main():
                 
                 
             elif library.is_open:
-                 if redisplay:
+                if not library.is_escrow_open:
+                    curr_lcd_message = "Library is open,\nWelcome!"
+                    
+                if redisplay:
                     lcd.display_message(curr_lcd_message)
                     redisplay = False
                 
                 id = rfid.scan_rfid_id()
                 type = cloud.get_id_type(id)
-                
+                print(id)
                 if type == LIBRARIAN:
                     library.close()
+                    curr_lcd_message = "Library is\nclosed."
+                    lcd.display_message(curr_lcd_message)
                     redisplay=True
+                    end_class_sound()
+                    time.sleep(5)
                 
                 elif type in PEOPLETYPES and library.status == NONE:
-                    library.open_escrow("borrow")
+                    curr_lcd_message = library.open_escrow(BORROWING)
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = True
+                    library.set_curr_borrower(id)
+                    please_wait_sound()
+                    time.sleep(3)
                     
                 elif type in PEOPLETYPES and library.status == BORROWING:
                     if not library.curr_borrower_id == id:
@@ -155,25 +175,35 @@ def main():
                         please_wait_sound()
                         redisplay = True
                         time.sleep(2)
+                    curr_lcd_message = library.borrow_escrow()
                     library.close_escrow()
-                    library.borrow_escrow()
+                    lcd.display_message("Return the books\non time!")
+                    please_wait_sound()
+                    time.sleep(3)
+                    redisplay = True
                     
                 elif type in PEOPLETYPES and library.status == RETURNING:
-                    library.close_escrow()
-                    library.return_escrow()
+                    lcd.display_message(library.close_escrow())
+                    library.return_escrow(id)
+                    curr_lcd_message = "Library is open,\nWelcome!"
+                    redisplay = True
+                    please_wait_sound()
+                    time.sleep(3)
                 
                 elif type == BOOK:
-                    if library.status == BORROWING or library.status == RETURNING:
-                        library.add_to_escrow(id)
+                    if library.status == BORROWING:
+                        curr_lcd_message = library.add_to_escrow(id)
+                        redisplay = True
                     elif cloud.is_borrowed(id):
                         library.set_to_returning()
-                        library.open_escrow("return")
-                        library.add_to_escrow(id)
+                        library.open_escrow(RETURNING)
+                        curr_lcd_message = library.add_to_escrow(id)
+                        redisplay = True
                     else:
                         lcd.display_message("Scan your card\nfirst.")
                         redisplay = True
                         invalid_id_sound()
-                        time.sleep(2)
+                    time.sleep(2)
                     
                 elif id == rfid.not_found:
                     pass
@@ -182,7 +212,7 @@ def main():
                     print("Invalid ID!")
                     invalid_id_sound()
                     redisplay = True
-                    time.sleep(1)
+                    time.sleep(2)
                     
                     
 #--------------------------------SHOP MODE----------------------------------------#        
