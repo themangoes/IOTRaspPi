@@ -29,6 +29,11 @@ def get_person_name(id):
 	person = people.find_one({"_id" : id})
 	return person["name"]
 	
+	
+def get_person_attribute(id, attribute):
+	person = people.find_one({"_id" : id})
+	return person[attribute]
+	
 
 def get_id_type(id):
 	
@@ -88,6 +93,7 @@ def borrow_books(borrower_id, escrow, borrow_date, return_due_date, due_date_epo
 	status = utils.BORROWED
 	returned_date = utils.NOTAPPLICABLE
 	late_fee_payed = 0
+	borrowed = 0
 	for book_id in escrow:
 		sl_num = new_borrow_sl_num()
 		title = get_book_attribute(book_id, "title")
@@ -116,6 +122,12 @@ def borrow_books(borrower_id, escrow, borrow_date, return_due_date, due_date_epo
 								status,
 								late_fee_payed
 							)
+		borrowed += 1
+		
+	people.update_one(
+						{"_id":borrower_id}, {"$inc" : {"borrowed_books_qty":borrowed}}
+					)
+	
 							
 	
 def set_book_data(book_id, borrower_id, borrow_date, returned_date, return_due_date, due_date_epoch, status, sl_num):	
@@ -137,22 +149,20 @@ def return_books(borrower_id, escrow):
 	return_date = utils.get_date_now()
 	status = utils.RETURNED
 	return_error_books = set()
+	returned = 0
 
 	for book_id in escrow:
 		sl_num = get_book_attribute(book_id, "borrow_sl_num")
 		due_date_epoch = get_book_attribute(book_id, "due_epoch_time")
 		late_fee = ((time.time() - due_date_epoch) / 86400)		
 		transact = True
-		print(late_fee)
 		if late_fee > 0:
 			late_fee = int(late_fee) + 1
 			transact = process_transaction(borrower_id, late_fee, "loss")
 		else:
 			late_fee = 0
-		print(late_fee)
-		print(transact)
+			
 		if transact:
-			print(f"returning {book_id}")
 			borrow_history.update_one(
 										{"_id":sl_num}, {"$set": {
 										"returned_date":return_date,
@@ -170,9 +180,13 @@ def return_books(borrower_id, escrow):
 							utils.AVAILABLE,
 							0
 						)
+			returned -= 1
 		else:
 			return_error_books.add(book_id)
 			
+	people.update_one(
+						{"_id":borrower_id}, {"$inc" : {"borrowed_books_qty":returned}}
+					)
 	return return_error_books
 	
 	
@@ -205,7 +219,65 @@ def get_late_fee(book_id):
 
 
 #---------------------------------------SHOP FUNCTIONS-----------------------------------#	
+
+def new_transaction_sl_num():
+	sl_num_record = transactions.find_one({"_id":0})
+	new_sl_num = sl_num_record["prev_transaction_sl_num"] + 1
+	transactions.update_one({"_id":0}, {'$inc': {'prev_transaction_sl_num': 1}})
+	return new_sl_num
+	
+
+def get_item_attribute(id, attribute):
+	item = items.find_one({"_id" : id})
+	info = item[attribute]
+	return info
+	
+	
+def buy_items(buyer_id, escrow):
+	error_items = []
+	for item_id in escrow:
+		sl_num = new_transaction_sl_num()
+		buy_date = utils.get_date_now()
+		buy_time = utils.get_time_now()
+		item_name = get_item_attribute(item_id, "item")
+		item_price = get_item_attribute(item_id, "price")
+		buyer_name = get_person_name(buyer_id)
 		
+		transact = process_transaction(buyer_id, item_price, "loss")
+		
+		if transact:
+			add_to_transaction_history(
+										sl_num,
+										item_id,
+										item_name,
+										item_price,
+										buyer_id,
+										buyer_name,
+										buy_date,
+										buy_time,
+										"loss"
+									)
+		else:
+			error_items.append(item_id)	
+	
+	return error_items
+	
+
+def add_to_transaction_history(sl_num, item_id, item_name, item_price, buyer_id, buyer_name, buy_date, buy_time, type):
+	transactions.update_one(
+							{"_id":sl_num}, {"$set" : {
+							"sl_num" : sl_num,
+							"item_id" : item_id,
+							"item_name" : item_name,
+							"item_price" : item_price,
+							"buyer_id" : buyer_id,
+							"buyer_name" : buyer_name,
+							"buy_date" : buy_date,
+							"buy_time" : buy_time,
+							"type" : type
+							}}, upsert=True
+						)
+	
 #-------------------------------CLASS ATTENDANCE FUNCTIONS-----------------------------------------#
 def new_class_sl_num():
 	sl_num_record = classes.find_one({"_id":0})

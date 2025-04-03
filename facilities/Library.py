@@ -7,6 +7,7 @@ import time
 
 escrow_timeout_limit = 60
 due_date_time_sec = 604800
+borrow_qty_limit = 1
 
 
 class Library():
@@ -14,6 +15,7 @@ class Library():
 	status = utils.NONE
 	is_escrow_open = False
 	curr_borrower_id = None
+	curr_borrower_borrowed_qty = 0
 	escrow = set()
 	escrow_open_time = None
 	total_late_fee = 0
@@ -33,6 +35,7 @@ class Library():
 	
 	def set_curr_borrower(self, id):
 		self.curr_borrower_id = id
+		self.curr_borrower_borrowed_qty = cloud.get_person_attribute(id, "borrowed_books_qty")
 		
 		
 	def open_escrow(self, mode):
@@ -55,9 +58,14 @@ class Library():
 		if not self.is_escrow_open:
 			return
 		
-		print(id)
+		if self.status == utils.BORROWING and borrow_qty_limit - self.curr_borrower_borrowed_qty - len(self.escrow) <= 0:
+			lcd.display_message("Borrow limit\nreached!")
+			sounds.invalid_id_sound()
+			time.sleep(3)
+			self.close_escrow()
+			return "Library is open,\nWelcome!"
+
 		self.escrow.add(id)
-		print(self.escrow)
 		if self.status == utils.RETURNING:
 			if not self.check_if_return_escrow_is_valid():
 				lcd.display_message("Invalid\nEscrow!")
@@ -85,6 +93,12 @@ class Library():
 		
 		
 	def borrow_escrow(self):
+		if len(self.escrow) <= 0:
+			lcd.display_message("Your Escrow is\nEmpty!")
+			sounds.please_wait_sound()
+			time.sleep(2)
+			return
+			
 		borrow_date = utils.get_date_now()
 		due_date_epoch = time.time() + due_date_time_sec
 		return_due_date = time.strftime(
@@ -103,16 +117,11 @@ class Library():
 		
 		
 	def return_escrow(self, id):
-		print(self.escrow)
-		print("test")
 		self.curr_borrower_id = id
 		if not self.check_if_return_escrow_is_valid():
 			print("Invalid Escrow")
 			return
-		
-		for i in self.escrow:
-			print(i)
-		print(len(self.escrow))
+
 		error_books = cloud.return_books(
 							self.curr_borrower_id, 
 							self.escrow,

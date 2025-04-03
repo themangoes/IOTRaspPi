@@ -6,20 +6,23 @@ from datetime import date
 from utils.utils import *
 import facilities.Class as Class
 import facilities.Library as Library
+import facilities.Shop as Shop
 import cloud.mongo_cloudconnect as cloud
 
 
 curr_lcd_message = ""
 redisplay = True
-mode = LIBRARY
+mode = SHOP
 curr_class = None
 library = None
+shop = None
 
 
 def main():
     global redisplay
     global curr_class
     global library
+    global shop
     global default_lcd_message
     global curr_lcd_message
     global mode
@@ -126,7 +129,7 @@ def main():
                 elif id == rfid.not_found:
                     pass
                     
-                elif type in PEOPLETYPES:
+                elif type in PEOPLETYPES or type == BOOK:
                     curr_lcd_message = "Please wait for\nLibrary to open."
                     lcd.display_message(curr_lcd_message)
                     redisplay = True
@@ -187,7 +190,6 @@ def main():
                     library.return_escrow(id)
                     library.close_escrow()
                     lcd.display_message("Thank You!")
-                    print("returned")
                     please_wait_sound()
                     time.sleep(3)
                     curr_lcd_message = "Library is open,\nWelcome!"
@@ -240,8 +242,115 @@ def main():
 #--------------------------------SHOP MODE----------------------------------------#        
         
         elif mode == SHOP:
-            print("do shop stuff")
-            # to do shop stuff
+            if not shop or shop.make_new:
+                shop = Shop.Shop()
+                
+            if not shop.is_open:
+                if redisplay:
+                    curr_lcd_message = "Shop is closed."
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = False
+                
+                id = rfid.scan_rfid_id()
+                type = cloud.get_id_type(id)
+                
+                if type == SHOPKEEPER:
+                    shop.open()
+                    curr_lcd_message = "Shop is open,\nWelcome!"
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = True
+                    start_class_sound()
+                    time.sleep(5)
+                    
+                elif id == rfid.not_found:
+                    pass
+                    
+                elif type in PEOPLETYPES or type == ITEM:
+                    curr_lcd_message = "Please wait for\nShop to open."
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = True
+                    please_wait_sound()
+                    time.sleep(3)
+                
+                else:
+                    print("Invalid ID!")
+                    invalid_id_sound()
+                    redisplay = True
+                    time.sleep(1)
+                
+                
+            elif shop.is_open:
+                if not shop.is_escrow_open:
+                    curr_lcd_message = "Shop is open,\nWelcome!"
+                    
+                if redisplay:
+                    lcd.display_message(curr_lcd_message)
+                    redisplay = False
+                
+                id = rfid.scan_rfid_id()
+                type = cloud.get_id_type(id)
+                
+                if type == SHOPKEEPER:
+                    shop.close()
+                    curr_lcd_message = "Shop is closed."
+                    lcd.display_message(curr_lcd_message)
+                    redisplay=True
+                    end_class_sound()
+                    time.sleep(5)
+                
+                elif type in PEOPLETYPES and not shop.is_shopping:
+                    shop.open_escrow()
+                    lcd.display_message("Scan chosen\nitems.")
+                    redisplay = False
+                    shop.set_curr_shopper(id)
+                    please_wait_sound()
+                    time.sleep(3)
+                    
+                elif type in PEOPLETYPES and shop.is_shopping:
+                    if not shop.curr_shopper_id == id:
+                        lcd.display_message("Please wait for\nprev user to end")
+                        please_wait_sound()
+                        redisplay = True
+                        time.sleep(2)
+                    lcd.display_message("Buying...")
+                    shop.buy_escrow()
+                    shop.close_escrow()
+                    lcd.display_message("Thank You for\nShopping!")
+                    please_wait_sound()
+                    time.sleep(3)
+                    curr_lcd_message = "Shop is open,\nWelcome!"
+                    redisplay = True
+                
+                elif type == ITEM:
+                    lcd.display_message("Scanning...")
+                    
+                    if shop.is_shopping and shop.is_escrow_open:
+                        curr_lcd_message = shop.add_to_escrow(id)
+                        lcd.display_message(curr_lcd_message)
+                        student_attending_sound()
+                        redisplay = True
+                    else:
+                        lcd.display_message("Scan your card\nfirst.")
+                        redisplay = True
+                        invalid_id_sound()
+                    time.sleep(3)
+                    
+                elif id == rfid.not_found:
+                    pass
+                
+                else:
+                    print("Invalid ID!")
+                    invalid_id_sound()
+                    redisplay = True
+                    time.sleep(2)
+                    
+                if shop.is_shopping:
+                    if shop.is_escrow_timeout():
+                        lcd.display_message("Time Limit\nExceeded!")
+                        invalid_id_sound()
+                        time.sleep(2)
+                        curr_lcd_message = "Shop is open,\nWelcome!"
+                        redisplay = True
             
 
         
