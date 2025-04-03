@@ -51,7 +51,10 @@ def get_id_type(id):
 def process_transaction(id, fee, type):
 	person_record = people.find_one({"_id" : id})
 	pre_balance = person_record["balance"]
-	post_balance = pre_balance - fee
+	if type == "loss":
+		post_balance = pre_balance - fee
+	elif type == "gain":
+		post_balance = pre_balance + fee
 	if post_balance < 0:
 		return False
 	else:
@@ -138,14 +141,18 @@ def return_books(borrower_id, escrow):
 	for book_id in escrow:
 		sl_num = get_book_attribute(book_id, "borrow_sl_num")
 		due_date_epoch = get_book_attribute(book_id, "due_epoch_time")
-		late_fee = ((time.time() - due_date_epoch) // 86400) + 1
+		late_fee = ((time.time() - due_date_epoch) / 86400)		
 		transact = True
+		print(late_fee)
 		if late_fee > 0:
+			late_fee = int(late_fee) + 1
 			transact = process_transaction(borrower_id, late_fee, "loss")
 		else:
 			late_fee = 0
-		
+		print(late_fee)
+		print(transact)
 		if transact:
+			print(f"returning {book_id}")
 			borrow_history.update_one(
 										{"_id":sl_num}, {"$set": {
 										"returned_date":return_date,
@@ -189,8 +196,9 @@ def add_to_borrow_history(sl_num, book_id, title, borrower_id, borrower_name, bo
 	
 def get_late_fee(book_id):
 	due_date_epoch = get_book_attribute(book_id, "due_epoch_time")
-	late_fee = ((time.time() - due_date_epoch) // 86400) + 1
+	late_fee = ((time.time() - due_date_epoch) / 86400)	
 	if late_fee > 0:
+		late_fee = int(late_fee) + 1
 		return late_fee
 	else:
 		return 0

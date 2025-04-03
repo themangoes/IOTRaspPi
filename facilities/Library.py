@@ -40,9 +40,8 @@ class Library():
 			return
 			
 		self.status = mode
-		self.escrow_open_time = utils.get_time_now()
+		self.escrow_open_time = time.time()
 		self.is_escrow_open = True
-		return "Scan chosen\nbooks."
 		
 		
 	def close_escrow(self):
@@ -50,21 +49,21 @@ class Library():
 			return	
 		
 		self.delete_escrow_instance()
-		if self.status == utils.BORROWING:
-			return "Return the books\non time!"
-		else:
-			return "Thank You!"
 		
 		
 	def add_to_escrow(self, id):
 		if not self.is_escrow_open:
 			return
 		
+		print(id)
 		self.escrow.add(id)
-		sounds.student_attending_sound()
+		print(self.escrow)
 		if self.status == utils.RETURNING:
 			if not self.check_if_return_escrow_is_valid():
-				return "Escrow is\ninvalid"
+				lcd.display_message("Invalid\nEscrow!")
+				sounds.invalid_id_sound()
+				time.sleep(2)
+				return "Library is open,\nWelcome!"
 		
 		if self.status == utils.BORROWING:
 			if cloud.get_book_attribute(id, "status") == utils.BORROWED:
@@ -101,12 +100,19 @@ class Library():
 							)
 		self.delete_escrow_instance()
 		self.close_escrow()
-		return "Library is open,\nWelcome!"
 		
 		
 	def return_escrow(self, id):
+		print(self.escrow)
+		print("test")
 		self.curr_borrower_id = id
-		self.check_if_return_escrow_is_valid()
+		if not self.check_if_return_escrow_is_valid():
+			print("Invalid Escrow")
+			return
+		
+		for i in self.escrow:
+			print(i)
+		print(len(self.escrow))
 		error_books = cloud.return_books(
 							self.curr_borrower_id, 
 							self.escrow,
@@ -117,7 +123,6 @@ class Library():
 			time.sleep(3)
 		self.delete_escrow_instance()
 		self.close_escrow()
-		return "Library is open,\nWelcome!"
 	
 	
 	def check_if_return_escrow_is_valid(self):
@@ -163,22 +168,18 @@ class Library():
 		
 		
 	def is_escrow_timeout(self):
-		if utils.get_time_now() - self.escrow_open_time >= escrow_timeout_limit:
+		if time.time() - self.escrow_open_time >= escrow_timeout_limit:
 			self.close_escrow()
-			self.delete_escrow_instance()
 			return True
 		else:
 			return False	
 		
 		
 	def delete_escrow_instance(self):
-		if self.is_escrow_open:
-			return
-		else:
-			self.escrow.clear()
-			self.total_late_fee = 0
-			escrow_open_time = None
-			self.is_escrow_open = False
-			self.status = utils.NONE
-			self.curr_borrower_id = None
+		self.escrow.clear()
+		self.total_late_fee = 0
+		escrow_open_time = None
+		self.is_escrow_open = False
+		self.status = utils.NONE
+		self.curr_borrower_id = None
 			

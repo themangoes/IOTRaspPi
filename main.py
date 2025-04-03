@@ -116,9 +116,7 @@ def main():
                 type = cloud.get_id_type(id)
                 
                 if type == LIBRARIAN:
-                    print("Librarian scanned!")
                     library.open()
-                    print(library.is_open)
                     curr_lcd_message = "Library is open,\nWelcome!"
                     lcd.display_message(curr_lcd_message)
                     redisplay = True
@@ -152,7 +150,7 @@ def main():
                 
                 id = rfid.scan_rfid_id()
                 type = cloud.get_id_type(id)
-                print(id)
+                
                 if type == LIBRARIAN:
                     library.close()
                     curr_lcd_message = "Library is\nclosed."
@@ -162,9 +160,9 @@ def main():
                     time.sleep(5)
                 
                 elif type in PEOPLETYPES and library.status == NONE:
-                    curr_lcd_message = library.open_escrow(BORROWING)
-                    lcd.display_message(curr_lcd_message)
-                    redisplay = True
+                    library.open_escrow(BORROWING)
+                    lcd.display_message("Scan chosen\nbooks.")
+                    redisplay = False
                     library.set_curr_borrower(id)
                     please_wait_sound()
                     time.sleep(3)
@@ -175,29 +173,45 @@ def main():
                         please_wait_sound()
                         redisplay = True
                         time.sleep(2)
-                    curr_lcd_message = library.borrow_escrow()
+                    lcd.display_message("Borrowing...")
+                    library.borrow_escrow()
                     library.close_escrow()
                     lcd.display_message("Return the books\non time!")
                     please_wait_sound()
                     time.sleep(3)
+                    curr_lcd_message = "Library is open,\nWelcome!"
                     redisplay = True
                     
                 elif type in PEOPLETYPES and library.status == RETURNING:
-                    lcd.display_message(library.close_escrow())
+                    lcd.display_message("Returning...")
                     library.return_escrow(id)
-                    curr_lcd_message = "Library is open,\nWelcome!"
-                    redisplay = True
+                    library.close_escrow()
+                    lcd.display_message("Thank You!")
+                    print("returned")
                     please_wait_sound()
                     time.sleep(3)
+                    curr_lcd_message = "Library is open,\nWelcome!"
+                    redisplay = True
                 
                 elif type == BOOK:
-                    if library.status == BORROWING:
-                        curr_lcd_message = library.add_to_escrow(id)
+                    lcd.display_message("Scanning...")
+                    if id in library.escrow:
+                        lcd.display_message("Already scanned!")
+                        please_wait_sound()
                         redisplay = True
+                    
+                    elif library.status == BORROWING:
+                        curr_lcd_message = library.add_to_escrow(id)
+                        lcd.display_message(curr_lcd_message)
+                        student_attending_sound()
+                        redisplay = True
+                        
                     elif cloud.is_borrowed(id):
                         library.set_to_returning()
                         library.open_escrow(RETURNING)
                         curr_lcd_message = library.add_to_escrow(id)
+                        lcd.display_message(curr_lcd_message)
+                        student_attending_sound()
                         redisplay = True
                     else:
                         lcd.display_message("Scan your card\nfirst.")
@@ -213,6 +227,14 @@ def main():
                     invalid_id_sound()
                     redisplay = True
                     time.sleep(2)
+                    
+                if not library.status == NONE:
+                    if library.is_escrow_timeout():
+                        lcd.display_message("Time Limit\nExceeded!")
+                        invalid_id_sound()
+                        time.sleep(2)
+                        curr_lcd_message = "Library is open,\nWelcome!"
+                        redisplay = True
                     
                     
 #--------------------------------SHOP MODE----------------------------------------#        
