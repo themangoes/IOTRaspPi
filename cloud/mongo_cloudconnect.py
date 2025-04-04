@@ -334,7 +334,7 @@ def increment_classes_attended_count(student_id, teacher_id, increment):
 						
 						
 def increment_classes_held_count(id, increment):
-	students.update_one(
+	teachers.update_one(
 							{"_id" : id},
 							{'$inc': {'classes_held': increment}}
 						)

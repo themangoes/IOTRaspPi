@@ -12,7 +12,7 @@ import cloud.mongo_cloudconnect as cloud
 
 curr_lcd_message = ""
 redisplay = True
-mode = SHOP
+mode = LIBRARY
 curr_class = None
 library = None
 shop = None

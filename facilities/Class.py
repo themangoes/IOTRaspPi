@@ -41,7 +41,6 @@ class Current_Class:
 							)
 		lcd.display_message("Faculty: " + name + "\nStartTime: " + self.start_time_fstr)
 		sounds.start_class_sound()
-		print("Class SL Num = ",self.class_sl_num)
 		time.sleep(3)
 		return ("Faculty: " + name + "\nStartTime: " + self.start_time_fstr)
 	
@@ -94,13 +93,13 @@ class Current_Class:
 							list(self.attending_students_set),
 							self.status
 							)
+			cloud.increment_classes_held_count(self.faculty_id, 1)
+			for id in self.attending_students_set:
+				cloud.increment_classes_attended_count(id, self.faculty_id, 1)
 			lcd.display_message("Class ended.")
 			self.end_class_scans = 0
 			self.attending_students_set.clear()
 			self.attending_students_set.add("None")
-			cloud.increment_classes_held_count(self.faculty_id, 1)
-			for id in self.attending_students_set:
-				cloud.increment_classes_attended_count(id, self.faculty_id, 1)
 			sounds.end_class_sound()
 			time.sleep(2)
 			

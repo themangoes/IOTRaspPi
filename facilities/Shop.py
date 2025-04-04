@@ -18,6 +18,7 @@ class Shop():
 	escrow_open_time = None
 	escrow_price = 0
 	make_new = False
+	transaction_limit = 0
 	
 	
 	def open(self):
@@ -33,6 +34,7 @@ class Shop():
 	
 	def set_curr_shopper(self, id):
 		self.curr_shopper_id = id
+		self.transaction_limit = cloud.get_person_attribute(id, 'transaction_limit');
 		
 		
 	def open_escrow(self):
@@ -57,6 +59,12 @@ class Shop():
 		
 		self.escrow.append(id)
 		self.escrow_price += cloud.get_item_attribute(id, "price")
+		if (self.escrow_price > self.transaction_limit):
+			lec.display_message("TransactionLimit\nExceeded!")
+			sounds.invalid_id_sound()
+			self.close_escrow()
+			time.sleep(3)
+			return "Shop is open,\nWelcome!"
 		return f"Buying: {len(self.escrow)}\nTotal:{self.escrow_price}Rs"
 		
 		
